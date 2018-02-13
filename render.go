@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/andlabs/ui"
-	"fmt"
 	"time"
 	"math"
+	"os"
 )
 
 type Renderer struct {
@@ -18,7 +18,7 @@ type Renderer struct {
 func (r *Renderer) mainLoop() {
 	for {
 		r.a.QueueRedrawAll()
-		time.Sleep(time.Duration(20) * time.Millisecond)
+		time.Sleep(time.Duration(50) * time.Millisecond)
 	}
 }
 
@@ -26,7 +26,7 @@ func (r *Renderer) drawModel(a *ui.Area, dp *ui.AreaDrawParams, model *Model) {
 
 	path := ui.NewPath(ui.Winding)
 	for _, t := range model.triangles {
-		if Angle(t.v1, t.Normal()) > math.Pi / 2 {	// back-face culling
+		if Dot(t.v1, t.Normal()) < 0. {	// back-face culling
 			point := r.projector.project(t.v1)
 			path.NewFigure(point.x, point.y)
 
@@ -47,12 +47,9 @@ func (r *Renderer) drawModel(a *ui.Area, dp *ui.AreaDrawParams, model *Model) {
 }
 
 func (r *Renderer) Draw(a *ui.Area, dp *ui.AreaDrawParams) {
-
 	angle := (float64(time.Now().UnixNano() % (int64(r.rotTime * 1e9))) / 1e9) *
 				((2 * math.Pi) / r.rotTime)
-
-	r.drawModel(a, dp, r.model.Clone().Rot(angle, angle, angle).Move(0, 0, -2.5))
-	r.drawModel(a, dp, r.model.Clone().Apply(ScaleM(.2, .2, .2)).Rot(-angle * 2, angle, -angle).Move(.8, -.8, -2.5))
+	r.drawModel(a, dp, r.model.Clone().Rot(angle, angle, angle).Move(0, 0, -2))
 }
 
 func (r Renderer) MouseEvent(a *ui.Area, me *ui.AreaMouseEvent) {
@@ -76,11 +73,11 @@ func rad(degrees float64) float64 {
 }
 
 func Cube() (*Model) {
-	top := (&Model{[]Triangle{
+	top := &Model{[]Triangle{
 		// counter-clockwise vertex winding
-		*NewTriangle(.5, .5, 0,  -.5, .5, 0,  -.5, -.5, 0),
-		*NewTriangle(-.5, -.5, 0,  .5, -.5, 0,  .5, .5, 0),
-	}}).Move(0, 0, .5)
+		*NewTriangle(.5, .5, .5,  -.5, .5, .5,  -.5, -.5, .5),
+		*NewTriangle(-.5, -.5, .5,  .5, -.5, .5,  .5, .5, .5),
+	}}
 
 	cube := top.Merge(
 		*top.Clone().Rot(rad(180), 0, 0),	// bottom
@@ -89,19 +86,30 @@ func Cube() (*Model) {
 		*top.Clone().Rot(0, rad(90), 0),	// west
 		*top.Clone().Rot(0, rad(-90), 0),	// east
 	)
-	fmt.Printf("%+v\n", cube)
 	return cube
 }
 
 func main() {
+	var model Model
+	if len(os.Args) > 1 {
+		f, err := os.Open(os.Args[1])
+		if err != nil {
+			panic(err)
+		}
+		model = *NewSTLReader(f).ReadModel(true)
+		f.Close()
+	} else {
+		model = *Cube().Rot(math.Pi / 4, math.Pi / 4, math.Pi / 4)
+	}
+
 	err := ui.Main(func() {
 
 		renderer := Renderer{
 			a:    nil,
 			dp:        nil,
 			projector: *NewProjector(600, 52),
-			model: *Cube().Rot(math.Pi / 4, math.Pi / 4, math.Pi / 4),
-			rotTime: 18,	// seconds per full rotation
+			model: model,
+			rotTime: 30,	// seconds per full rotation
 		}
 		canvas := ui.NewArea(&renderer)
 		renderer.a = canvas
