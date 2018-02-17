@@ -5,3 +5,10 @@ non-accelerated 3D wire-frame rendering engine with perspective projection
 and back-face culling from scratch for no reason whatsoever.
 
 ![](https://bitbucket.org/evzijst/3dgo/raw/master/projection.gif)
+
+
+# Building
+
+    $ go get github.com/stretchr/testify github.com/andlabs/ui
+    $ go build -o render .
+    $ ./render models/sphere.stl

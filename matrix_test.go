@@ -1,10 +1,23 @@
+// Copyright 2018 Erik van Zijst -- erik.van.zijst@gmail.com
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package main
 
 import (
 	"testing"
 	"reflect"
 	"math"
-	"fmt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCloneTriangle(t *testing.T) {
@@ -68,6 +81,28 @@ func assertAlmostEqualV4(t *testing.T, v1 V4, v2 V4) {
 	assertAlmostEqual(t, v2.w, v1.w)
 }
 
+func assertAlmostEqualM4(t *testing.T, m1 *M4, m2 *M4, e float64) {
+	assert.InDelta(t, m1.a0, m2.a0, e, "a0")
+	assert.InDelta(t, m1.a1, m2.a1, e, "a1")
+	assert.InDelta(t, m1.a2, m2.a2, e, "a2")
+	assert.InDelta(t, m1.a3, m2.a3, e, "a3")
+
+	assert.InDelta(t, m1.b0, m2.b0, e, "b0")
+	assert.InDelta(t, m1.b1, m2.b1, e, "b1")
+	assert.InDelta(t, m1.b2, m2.b2, e, "b2")
+	assert.InDelta(t, m1.b3, m2.b3, e, "b3")
+
+	assert.InDelta(t, m1.c0, m2.c0, e, "c0")
+	assert.InDelta(t, m1.c1, m2.c1, e, "c1")
+	assert.InDelta(t, m1.c2, m2.c2, e, "c2")
+	assert.InDelta(t, m1.c3, m2.c3, e, "c3")
+
+	assert.InDelta(t, m1.d0, m2.d0, e, "d0")
+	assert.InDelta(t, m1.d1, m2.d1, e, "d1")
+	assert.InDelta(t, m1.d2, m2.d2, e, "d2")
+	assert.InDelta(t, m1.d3, m2.d3, e, "d3")
+}
+
 func TestModelRotate(t *testing.T) {
 	m := Model{triangles: []Triangle{*NewTriangle(
 		0, 0, 0,
@@ -100,7 +135,6 @@ func TestVectorCrossProduct(t *testing.T) {
 
 func TestVectorDotProduct(t *testing.T) {
 	assertAlmostEqual(t, 6, Dot(*NewV4(1, 2, 0), *NewV4(-4, 5, 6)))
-	fmt.Println(NewV4(-40, 5, 6).Length())
 }
 
 func TestVectorLength(t *testing.T) {
@@ -130,4 +164,31 @@ func TestNormalComputation(t *testing.T) {
 
 	triangle = NewTriangle(.5, .5, 0,  -.5, -.5, 0,  -.5, .5, 0)
 	assertAlmostEqualV4(t, *NewV4(0, 0, -1), triangle.Normal())
+}
+
+func TestM4_Determinant(t *testing.T) {
+	assert.Equal(t, 1., new(M4).SetIdentity().Determinant())
+	assert.InEpsilonf(t, -6.199999999999999, (&M4{
+		4, 0, 1, 2,
+		-1, 1, 0, 3,
+		-1, 0, 2, 0,
+		3.3, 0, 1, 1,
+	}).Determinant(), 1e-6, "Determinant failed")
+
+	m := RotX(rad(-23)).Mul(RotY(rad(2))).Mul(TransM(NewV4(1, 2, 3))).Mul(ScaleM(0.3, 1.9, .9))
+	assert.InDelta(t, 0.5129999999999999, m.Determinant(), 1e-6, "Determinant failed")
+}
+
+func TestM4_Inverse(t *testing.T) {
+	m := new(M4).SetIdentity()
+	assertAlmostEqualM4(t, m, m.Inverse(), 1e-6)
+
+	m = RotX(rad(-23)).Mul(RotY(rad(2))).Mul(TransM(NewV4(1, 2, 3))).Mul(ScaleM(0.3, 1.9, .9))
+	assertAlmostEqualM4(t, &M4{
+		a0: 3.3313027567303193, a1:-0.04545439910091964, a2:-0.1070838536589986, a3:-3.3333333333333335,
+		b0:8.453818109048769e-19, b1:0.4844762386591792, b2:-0.2056479623627757, b3:-1.0526315789473686,
+		c0:0.0387772185583344, c1:0.4338812284922221, c2:1.0221601186299176, c3:-3.333333333333333,
+		d0:0, d1:0, d2:0, d3:1,},
+		m.Inverse(), 1e-6)
+	assertAlmostEqualM4(t, new(M4).SetIdentity(), m.Inverse().Mul(m), 1e-6)
 }

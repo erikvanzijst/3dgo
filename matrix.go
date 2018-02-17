@@ -1,3 +1,16 @@
+// Copyright 2018 Erik van Zijst -- erik.van.zijst@gmail.com
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package main
 
 import (
@@ -131,6 +144,53 @@ func (m *M4) Mul(m2 *M4) *M4 {
 	m.d0, m.d1, m.d2, m.d3 = d0, d1, d2, d3
 
 	return m
+}
+
+// Transpose returns a new matrix containing the transposition of this matrix.
+func (m *M4) Transpose() *M4 {
+	return &M4{
+		m.a0, m.b0, m.c0, m.d0,
+		m.a1, m.b1, m.c1, m.d1,
+		m.a2, m.b2, m.c2, m.d2,
+		m.a3, m.b3, m.c3, m.d3,
+	}
+}
+
+func (m *M4) Determinant() float64 {
+	// http://cg.info.hiroshima-cu.ac.jp/~miyazaki/knowledge/teche23.html
+    return m.a0*m.b1*m.c2*m.d3 + m.a0*m.b2*m.c3*m.d1 + m.a0*m.b3*m.c1*m.d2 +
+           m.a1*m.b0*m.c3*m.d2 + m.a1*m.b2*m.c0*m.d3 + m.a1*m.b3*m.c2*m.d0 +
+           m.a2*m.b0*m.c1*m.d3 + m.a2*m.b1*m.c3*m.d0 + m.a2*m.b3*m.c0*m.d1 +
+           m.a3*m.b0*m.c2*m.d1 + m.a3*m.b1*m.c0*m.d2 + m.a3*m.b2*m.c1*m.d0 -
+           m.a0*m.b1*m.c3*m.d2 - m.a0*m.b2*m.c1*m.d3 - m.a0*m.b3*m.c2*m.d1 -
+           m.a1*m.b0*m.c2*m.d3 - m.a1*m.b2*m.c3*m.d0 - m.a1*m.b3*m.c0*m.d2 -
+           m.a2*m.b0*m.c3*m.d1 - m.a2*m.b1*m.c0*m.d3 - m.a2*m.b3*m.c1*m.d0 -
+           m.a3*m.b0*m.c1*m.d2 - m.a3*m.b1*m.c2*m.d0 - m.a3*m.b2*m.c0*m.d1
+}
+
+// Inverse
+func (m *M4) Inverse() *M4 {
+    // http://cg.info.hiroshima-cu.ac.jp/~miyazaki/knowledge/teche23.html
+    det := m.Determinant()
+
+    return &M4{
+        a0: (m.b1*m.c2*m.d3 + m.b2*m.c3*m.d1 + m.b3*m.c1*m.d2 - m.b1*m.c3*m.d2 - m.b2*m.c1*m.d3 - m.b3*m.c2*m.d1) / det,
+        a1: (m.a1*m.c3*m.d2 + m.a2*m.c1*m.d3 + m.a3*m.c2*m.d1 - m.a1*m.c2*m.d3 - m.a2*m.c3*m.d1 - m.a3*m.c1*m.d2) / det,
+        a2: (m.a1*m.b2*m.d3 + m.a2*m.b3*m.d1 + m.a3*m.b1*m.d2 - m.a1*m.b3*m.d2 - m.a2*m.b1*m.d3 - m.a3*m.b2*m.d1) / det,
+        a3: (m.a1*m.b3*m.c2 + m.a2*m.b1*m.c3 + m.a3*m.b2*m.c1 - m.a1*m.b2*m.c3 - m.a2*m.b3*m.c1 - m.a3*m.b1*m.c2) / det,
+        b0: (m.b0*m.c3*m.d2 + m.b2*m.c0*m.d3 + m.b3*m.c2*m.d0 - m.b0*m.c2*m.d3 - m.b2*m.c3*m.d0 - m.b3*m.c0*m.d2) / det,
+        b1: (m.a0*m.c2*m.d3 + m.a2*m.c3*m.d0 + m.a3*m.c0*m.d2 - m.a0*m.c3*m.d2 - m.a2*m.c0*m.d3 - m.a3*m.c2*m.d0) / det,
+        b2: (m.a0*m.b3*m.d2 + m.a2*m.b0*m.d3 + m.a3*m.b2*m.d0 - m.a0*m.b2*m.d3 - m.a2*m.b3*m.d0 - m.a3*m.b0*m.d2) / det,
+        b3: (m.a0*m.b2*m.c3 + m.a2*m.b3*m.c0 + m.a3*m.b0*m.c2 - m.a0*m.b3*m.c2 - m.a2*m.b0*m.c3 - m.a3*m.b2*m.c0) / det,
+        c0: (m.b0*m.c1*m.d3 + m.b1*m.c3*m.d0 + m.b3*m.c0*m.d1 - m.b0*m.c3*m.d1 - m.b1*m.c0*m.d3 - m.b3*m.c1*m.d0) / det,
+        c1: (m.a0*m.c3*m.d1 + m.a1*m.c0*m.d3 + m.a3*m.c1*m.d0 - m.a0*m.c1*m.d3 - m.a1*m.c3*m.d0 - m.a3*m.c0*m.d1) / det,
+        c2: (m.a0*m.b1*m.d3 + m.a1*m.b3*m.d0 + m.a3*m.b0*m.d1 - m.a0*m.b3*m.d1 - m.a1*m.b0*m.d3 - m.a3*m.b1*m.d0) / det,
+        c3: (m.a0*m.b3*m.c1 + m.a1*m.b0*m.c3 + m.a3*m.b1*m.c0 - m.a0*m.b1*m.c3 - m.a1*m.b3*m.c0 - m.a3*m.b0*m.c1) / det,
+        d0: (m.b0*m.c2*m.d1 + m.b1*m.c0*m.d2 + m.b2*m.c1*m.d0 - m.b0*m.c1*m.d2 - m.b1*m.c2*m.d0 - m.b2*m.c0*m.d1) / det,
+        d1: (m.a0*m.c1*m.d2 + m.a1*m.c2*m.d0 + m.a2*m.c0*m.d1 - m.a0*m.c2*m.d1 - m.a1*m.c0*m.d2 - m.a2*m.c1*m.d0) / det,
+        d2: (m.a0*m.b2*m.d1 + m.a1*m.b0*m.d2 + m.a2*m.b1*m.d0 - m.a0*m.b1*m.d2 - m.a1*m.b2*m.d0 - m.a2*m.b0*m.d1) / det,
+        d3: (m.a0*m.b1*m.c2 + m.a1*m.b2*m.c0 + m.a2*m.b0*m.c1 - m.a0*m.b2*m.c1 - m.a1*m.b0*m.c2 - m.a2*m.b1*m.c0) / det,
+    }
 }
 
 type Triangle struct {
