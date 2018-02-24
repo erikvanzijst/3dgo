@@ -45,10 +45,10 @@ func (v *V4) Normalize() *V4 {
 // Add adds the specified vector to this vector and returns a new vector.
 func (v *V4) Add(v2 *V4) V4 {
 	return V4{
-		x: v.x - v2.x,
-		y: v.y - v2.y,
-		z: v.z - v2.z,
-		w: v.w - v2.w,
+		x: v.x + v2.x,
+		y: v.y + v2.y,
+		z: v.z + v2.z,
+		w: v.w,
 	}
 }
 
@@ -58,13 +58,13 @@ func (v *V4) Subtract(v2 V4) V4 {
 		x: v.x - v2.x,
 		y: v.y - v2.y,
 		z: v.z - v2.z,
-		w: v.w - v2.w,
+		w: v.w,
 	}
 }
 
 // MultiplyV multiplies this vector by the specified vector and returns itself.
 func (v *V4) MultiplyV(v2 *V4) *V4 {
-	v.x, v.y, v.z, v.w = v.x * v2.x, v.y * v2.y, v.z * v2.z, v.w * v2.w
+	v.x, v.y, v.z = v.x * v2.x, v.y * v2.y, v.z * v2.z
 	return v
 }
 
