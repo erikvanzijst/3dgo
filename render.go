@@ -24,6 +24,7 @@ type Renderer struct {
 	a         *ui.Area
 	dp        *ui.AreaDrawParams
 	model     Model
+    cameraMatrix M4
 	projector Projector
 	rotTime   float64 // seconds per rotation
 }
@@ -62,7 +63,10 @@ func (r *Renderer) drawModel(a *ui.Area, dp *ui.AreaDrawParams, model *Model) {
 func (r *Renderer) Draw(a *ui.Area, dp *ui.AreaDrawParams) {
 	angle := (float64(time.Now().UnixNano() % (int64(r.rotTime * 1e9))) / 1e9) *
 				((2 * math.Pi) / r.rotTime)
-	r.drawModel(a, dp, r.model.Clone().Rot(angle, angle, angle).Move(0, 0, -2))
+    mat := RotX(math.Pi/2.).Mul(RotY(rad(23.4))).Mul(RotZ(angle))
+    model := r.model.Clone().Apply(mat)
+
+    r.drawModel(a, dp, model.Apply(r.cameraMatrix.Inverse()))
 }
 
 func (r Renderer) MouseEvent(a *ui.Area, me *ui.AreaMouseEvent) {
@@ -77,7 +81,32 @@ func (r Renderer) DragBroken(a *ui.Area) {
 	return
 }
 
-func (r Renderer) KeyEvent(a *ui.Area, ke *ui.AreaKeyEvent) (handled bool) {
+func (r *Renderer) KeyEvent(a *ui.Area, ke *ui.AreaKeyEvent) (handled bool) {
+    step := .25
+
+    if !ke.Up {
+        tm := new(M4).SetIdentity()
+
+        switch ke.Key {
+        case int32('w'):
+            tm = TransM(NewV4(0, 0, -step))
+        case int32('s'):
+            tm = TransM(NewV4(0, 0, step))
+        case int32('a'):
+            tm = TransM(NewV4(-step, 0, 0))
+        case int32('d'):
+            tm = TransM(NewV4(step, 0, 0))
+        }
+
+        switch ke.ExtKey {
+        case ui.Left:
+            tm = RotY(rad(step*4))
+        case ui.Right:
+            tm = RotY(rad(-step*4))
+        }
+        r.cameraMatrix.Mul(tm)
+        return true
+    }
 	return
 }
 
@@ -122,6 +151,7 @@ func main() {
 			dp:        nil,
 			projector: *NewProjector(600, 52),
 			model: model,
+			cameraMatrix: *TransM(NewV4(0, 0, 2)),
 			rotTime: 30,	// seconds per full rotation
 		}
 		canvas := ui.NewArea(&renderer)

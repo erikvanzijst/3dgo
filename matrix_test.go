@@ -75,10 +75,10 @@ func assertAlmostEqual(t *testing.T, v1 float64, v2 float64) {
 }
 
 func assertAlmostEqualV4(t *testing.T, v1 V4, v2 V4) {
-	assertAlmostEqual(t, v2.x, v1.x)
-	assertAlmostEqual(t, v2.y, v1.y)
-	assertAlmostEqual(t, v2.z, v1.z)
-	assertAlmostEqual(t, v2.w, v1.w)
+    assert.InDelta(t, v1.x, v2.x, 1e-6, "V4.x")
+    assert.InDelta(t, v1.y, v2.y, 1e-6, "V4.y")
+    assert.InDelta(t, v1.z, v2.z, 1e-6, "V4.z")
+    assert.InDelta(t, v1.w, v2.w, 1e-6, "V4.w")
 }
 
 func assertAlmostEqualM4(t *testing.T, m1 *M4, m2 *M4, e float64) {
@@ -138,32 +138,38 @@ func TestVectorDotProduct(t *testing.T) {
 }
 
 func TestVectorLength(t *testing.T) {
-	assertAlmostEqual(t, 1.7320508075688772, NewV4(1, 1, 1).Length())
-	assertAlmostEqual(t, 1.4142135623730951, NewV4(1, 1, 0).Length())
-	assertAlmostEqual(t, 5, NewV4(3, 4, 0).Length())
+    assertAlmostEqual(t, 1.7320508075688772, NewV4(1, 1, 1).Length())
+    assertAlmostEqual(t, 1.4142135623730951, NewV4(1, 1, 0).Length())
+    assertAlmostEqual(t, 5, NewV4(3, 4, 0).Length())
+}
+
+func TestV4_Normalize(t *testing.T) {
+    assert.InDelta(t, 1., NewV4(1, 1, 1).Normalize().Length(), 1e-6, "Normalized length")
+    assert.InDelta(t, 0., NewV4(0, 0, 0).Normalize().Length(), 1e-6, "Normalized length")
+    assert.InDelta(t, NewV4(1, 1, 1).Normalize().Length(), NewV4(3, 3, 3).Normalize().Length(), 1e-6, "Normalized length")
 }
 
 func TestVectorAngle(t *testing.T) {
-	assertAlmostEqual(t, 0, Angle(*NewV4(1, 1, 1), *NewV4(1, 1, 1)))
-	assertAlmostEqual(t, math.Pi, Angle(*NewV4(1, 1, 1), *NewV4(-1, -1, -1)))
-	assertAlmostEqual(t, math.Pi / 2, Angle(*NewV4(1, 1, 0), *NewV4(-1, 1, 0)))
-	assertAlmostEqual(t, math.Pi / 2, Angle(*NewV4(2, 2, 0), *NewV4(-1, 1, 0)))
+    assertAlmostEqual(t, 0, Angle(*NewV4(1, 1, 1), *NewV4(1, 1, 1)))
+    assertAlmostEqual(t, math.Pi, Angle(*NewV4(1, 1, 1), *NewV4(-1, -1, -1)))
+    assertAlmostEqual(t, math.Pi / 2, Angle(*NewV4(1, 1, 0), *NewV4(-1, 1, 0)))
+    assertAlmostEqual(t, math.Pi / 2, Angle(*NewV4(2, 2, 0), *NewV4(-1, 1, 0)))
 }
 
 func TestNormalComputation(t *testing.T) {
-	// counter-clockwise vertex winding:
-	triangle := NewTriangle(.5, .5, 0,  -.5, .5, 0,  -.5, -.5, 0)
-	assertAlmostEqualV4(t, *NewV4(0, 0, 1), triangle.Normal())
+    // counter-clockwise vertex winding:
+    triangle := NewTriangle(.5, .5, 0,  -.5, .5, 0,  -.5, -.5, 0)
+    assertAlmostEqualV4(t, *NewV4(0, 0, 1), triangle.Normal())
 
-	triangle = NewTriangle(-.5, .5, 0,  -.5, -.5, 0, .5, .5, 0)
-	assertAlmostEqualV4(t, *NewV4(0, 0, 1), triangle.Normal())
+    triangle = NewTriangle(-.5, .5, 0,  -.5, -.5, 0, .5, .5, 0)
+    assertAlmostEqualV4(t, *NewV4(0, 0, 1), triangle.Normal())
 
-	// clockwise vertex winding:
-	triangle = NewTriangle(-.5, .5, 0, .5, .5, 0,  -.5, -.5, 0).Apply(RotX(rad(45)))
-	assertAlmostEqualV4(t, *NewV4(0, 0.7071067811865476, -0.7071067811865476), triangle.Normal())
+    // clockwise vertex winding:
+    triangle = NewTriangle(-.5, .5, 0, .5, .5, 0,  -.5, -.5, 0).Apply(RotX(rad(45)))
+    assertAlmostEqualV4(t, *NewV4(0, 0.7071067811865476, -0.7071067811865476), triangle.Normal())
 
-	triangle = NewTriangle(.5, .5, 0,  -.5, -.5, 0,  -.5, .5, 0)
-	assertAlmostEqualV4(t, *NewV4(0, 0, -1), triangle.Normal())
+    triangle = NewTriangle(.5, .5, 0,  -.5, -.5, 0,  -.5, .5, 0)
+    assertAlmostEqualV4(t, *NewV4(0, 0, -1), triangle.Normal())
 }
 
 func TestM4_Determinant(t *testing.T) {
@@ -191,4 +197,52 @@ func TestM4_Inverse(t *testing.T) {
 		d0:0, d1:0, d2:0, d3:1,},
 		m.Inverse(), 1e-6)
 	assertAlmostEqualM4(t, new(M4).SetIdentity(), m.Inverse().Mul(m), 1e-6)
+}
+
+func TestRot(t *testing.T) {
+    xaxis := NewV4(1, 0, 0)
+    yaxis := NewV4(0, 1, 0)
+    zaxis := NewV4(0, 0, 1)
+    origin := NewV4(0, 0, 0)
+
+    assertAlmostEqualV4(t, *origin, *origin.MultiplyM(Rot(origin, xaxis, rad(45))))
+    assertAlmostEqualV4(t, *origin, *origin.MultiplyM(Rot(origin, yaxis, rad(45))))
+    assertAlmostEqualV4(t, *origin, *origin.MultiplyM(Rot(origin, zaxis, rad(45))))
+
+    p := NewV4(1, 1, 1)
+    assertAlmostEqualV4(t, *NewV4(1, -1, 1), *p.MultiplyM(Rot(origin, xaxis, rad(90))))
+    p = NewV4(1, 1, 1)
+    assertAlmostEqualV4(t, *NewV4(1, 1, -1), *p.MultiplyM(Rot(origin, yaxis, rad(90))))
+    p = NewV4(1, 1, 1)
+    assertAlmostEqualV4(t, *NewV4(-1, 1, 1), *p.MultiplyM(Rot(origin, zaxis, rad(90))))
+
+    // assert that a negative angle is the same as flipping the direction vector:
+    p = NewV4(1, 1, 1)
+    assertAlmostEqualV4(t, *NewV4(1, 1, -1), *p.MultiplyM(Rot(origin, xaxis, rad(-90))))
+    p = NewV4(1, 1, 1)
+    assertAlmostEqualV4(t, *NewV4(1, 1, -1), *p.MultiplyM(Rot(origin, NewV4(-1, 0, 0), rad(90))))
+
+    // articulation > 1
+    assertAlmostEqualV4(t,
+        *NewV4(-1, -2, 3),
+        *NewV4(-1, 3, 2).MultiplyM(Rot(origin, xaxis, rad(90))))
+
+    // rotation around oneself
+    assertAlmostEqualV4(t,
+        *NewV4(-1, 3, 2),
+        *NewV4(-1, 3, 2).MultiplyM(
+            Rot(NewV4(-1, 3, 2), NewV4(-1, -1, 1), rad(90))))
+
+	// rotation around custom vector from the origin
+    assertAlmostEqualV4(t,
+        *NewV4(0.2928932188134524, 1.7071067811865475, 0),
+        *NewV4(1, 1, 1).MultiplyM(
+            Rot(origin, &V4{-1, -1, 0, 1}, rad(90))))
+
+    // rotation around custom vector from custom point
+    assertAlmostEqualV4(t,
+        *NewV4(0.4961430174654501, 2.1688893982361113, -3.0473954553288047),
+        *NewV4(2, 1, -3).MultiplyM(
+            Rot(NewV4(.5, .7, -1.1), &V4{-1, -.8, 12, 1}, rad(90))))
+
 }

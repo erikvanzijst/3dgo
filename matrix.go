@@ -31,6 +31,17 @@ func (v *V4) Length() float64 {
 	return math.Sqrt(Dot(*v, *v))
 }
 
+// Normalize normalizes this vector and returns itself.
+func (v *V4) Normalize() *V4 {
+    l := v.Length()
+    if l > 0 {
+        v.x /= l
+        v.y /= l
+        v.z /= l
+    }
+    return v
+}
+
 // Add adds the specified vector to this vector and returns a new vector.
 func (v *V4) Add(v2 *V4) V4 {
 	return V4{
@@ -51,8 +62,8 @@ func (v *V4) Subtract(v2 V4) V4 {
 	}
 }
 
+// MultiplyV multiplies this vector by the specified vector and returns itself.
 func (v *V4) MultiplyV(v2 *V4) *V4 {
-	// Multiplies this vector with the specified vector and returns itself.
 	v.x, v.y, v.z, v.w = v.x * v2.x, v.y * v2.y, v.z * v2.z, v.w * v2.w
 	return v
 }
@@ -168,7 +179,7 @@ func (m *M4) Determinant() float64 {
            m.a3*m.b0*m.c1*m.d2 - m.a3*m.b1*m.c2*m.d0 - m.a3*m.b2*m.c0*m.d1
 }
 
-// Inverse
+// Inverse returns a new matrix containing the inverse of this matrix.
 func (m *M4) Inverse() *M4 {
     // http://cg.info.hiroshima-cu.ac.jp/~miyazaki/knowledge/teche23.html
     det := m.Determinant()
@@ -312,11 +323,54 @@ func RotY(a float64) *M4 {
 		0, 0, 0, 1}
 }
 
+// RotZ creates a new rotation matrix along the z-axis, with the specified angle in radians.
 func RotZ(a float64) *M4 {
-	// Creates a new rotation matrix along the z-axis, with the specified angle in radians.
 	return &M4{
 		math.Cos(a), -math.Sin(a), 0, 0,
 		math.Sin(a), math.Cos(a), 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1}
+}
+
+// Rot returns a rotation matrix that when applied to a vector, rotates the
+// vector about the line through point `p` with direction vector `v` by the
+// specified angle in radians.
+func Rot(p *V4, v *V4, phi float64) *M4 {
+    // https://sites.google.com/site/glennmurray/Home/rotation-matrices-and-formulas
+
+    // Normalize the direction vector:
+    l := v.Length()
+    if l <= 0 {
+        panic("Cannot rotate around vector of length zero")
+    }
+    x := v.x / l
+    y := v.y / l
+    z := v.z / l
+
+    // Precompute intermediate values:
+    x2 := x * x
+    y2 := y * y
+    z2 := z * z
+    sp := math.Sin(phi)
+    cp := math.Cos(phi)
+    omcp := 1. - cp
+
+    return &M4{
+        a0: x2 + (y2 + z2) * cp,
+        a1: x * y * omcp - z * sp,
+        a2: x * z * omcp + y * sp,
+        a3: (p.x * (y2 + z2) - x * (p.y * y + p.z * z)) * omcp + (p.y * z - p.z * y) * sp,
+        b0: x * y * omcp + z * sp,
+        b1: y2 + (x2 + z2) * cp,
+        b2: y * z * omcp - x * sp,
+        b3: (p.y * (x2 + z2) - y * (p.x * x + p.z * z)) * omcp + (p.z * x - p.x * z) * sp,
+        c0: x * z * omcp - y * sp,
+        c1: y * z * omcp + x * sp,
+        c2: z2 + (x2 + y2) * cp,
+        c3: (p.z * (x2 + y2) - z * (p.x * x + p.y * y)) * omcp + (p.x * y - p.y * x) * sp,
+        d0: 0,
+        d1: 0,
+        d2: 0,
+        d3: 1,
+    }
 }
