@@ -20,6 +20,7 @@ type Projector struct {
 	size int
 	plane float64
 	scale float64
+	clipping float64	// frustum near clipping plane
 }
 
 func NewProjector(resolution int, angleOfView float64) *Projector {
@@ -30,6 +31,7 @@ func NewProjector(resolution int, angleOfView float64) *Projector {
 		size: resolution,
 		plane: plane,
 		scale: float64(resolution) / (plane * 2.0),
+		clipping: -.1,
 	}
 	return &p
 }

@@ -40,7 +40,11 @@ func (r *Renderer) drawModel(a *ui.Area, dp *ui.AreaDrawParams, model *Model) {
 
 	path := ui.NewPath(ui.Winding)
 	for _, t := range model.triangles {
-		if Dot(t.v1, t.Normal()) < 0. {	// back-face culling
+		// back-face culling:
+		if Dot(t.v1, t.Normal()) < 0. &&
+			// frustum near-plane clipping:
+			t.v1.z <= r.projector.clipping && t.v2.z <= r.projector.clipping && t.v3.z <= r.projector.clipping {
+
 			point := r.projector.project(t.v1)
 			path.NewFigure(point.x, point.y)
 
